@@ -8,12 +8,23 @@ from flare_ai_consensus.settings import AggregatorConfig, Message
 
 def _concatenate_aggregator(responses: dict[str, str]) -> str:
     """
-    Aggregate responses by concatenating each model's answer with a label.
+    Aggregate responses by concatenating each model's answer with a structured format
+    for easier comparison and analysis.
 
     :param responses: A dictionary mapping model IDs to their response texts.
-    :return: A single aggregated string.
+    :return: A single aggregated string with clearly marked sections.
     """
-    return "\n\n".join([f"{model}: {text}" for model, text in responses.items()])
+    aggregated_text = "# MODEL RESPONSES\n\n"
+    
+    for model_id, text in responses.items():
+        # Clean up the model ID to make it more readable
+        model_name = model_id.split('/')[-1].split(':')[0].replace('-', ' ').title()
+        
+        # Add a clear section header for each model response
+        aggregated_text += f"## Model: {model_name}\n\n{text}\n\n"
+        aggregated_text += "---\n\n"  # Add separator between responses
+    
+    return aggregated_text
 
 
 def centralized_llm_aggregator(

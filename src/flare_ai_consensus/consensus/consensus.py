@@ -45,7 +45,7 @@ async def run_consensus(
     # Step 2: Improvement rounds.
     for i in range(consensus_config.iterations):
         responses = await send_round(
-            provider, consensus_config, initial_conversation, aggregated_response
+            provider, consensus_config, initial_conversation, aggregated_response, i
         )
         aggregated_response = await async_centralized_llm_aggregator(
             provider, consensus_config.aggregator_config, responses
@@ -66,27 +66,37 @@ def _build_improvement_conversation(
     consensus_config: ConsensusConfig,
     initial_conversation: list[Message],
     aggregated_response: str,
+    iteration: int = 0,
 ) -> list[Message]:
     """Build an updated conversation using the consensus configuration.
 
     :param consensus_config: An instance of ConsensusConfig.
     :param initial_conversation: the input user prompt with system instructions.
     :param aggregated_response: The aggregated consensus response.
+    :param iteration: The current iteration number (0-indexed).
     :return: A list of messages for the updated conversation.
     """
     conversation = initial_conversation.copy()
 
-    # Add aggregated response
+    # Add aggregated response with iteration information
     conversation.append(
         {
             "role": consensus_config.aggregated_prompt_type,
-            "content": f"Consensus: {aggregated_response}",
+            "content": f"### Consensus from Iteration {iteration + 1}:\n\n{aggregated_response}",
         }
     )
 
-    # Add new prompt as "user" message
+    # Add improvement prompt with specific iteration guidance
+    iteration_guidance = ""
+    if iteration > 0:
+        iteration_guidance = (
+            f"\n\nThis is improvement iteration {iteration + 1}. "
+            "Focus especially on refining areas where previous responses had inconsistencies "
+            "or where further clarity or depth would improve the consensus answer."
+        )
+
     conversation.append(
-        {"role": "user", "content": consensus_config.improvement_prompt}
+        {"role": "user", "content": consensus_config.improvement_prompt + iteration_guidance}
     )
     return conversation
 
@@ -97,6 +107,7 @@ async def _get_response_for_model(
     model: ModelConfig,
     initial_conversation: list[Message],
     aggregated_response: str | None,
+    iteration: int = 0,
 ) -> tuple[str | None, str]:
     """
     Asynchronously sends a chat completion request for a given model.
@@ -107,6 +118,7 @@ async def _get_response_for_model(
     :param initial_conversation: the input user prompt with system instructions.
     :param aggregated_response: The aggregated consensus response
         from the previous round (or None).
+    :param iteration: The current iteration number (0-indexed).
     :return: A tuple of (model_id, response text).
     """
     if not aggregated_response:
@@ -116,9 +128,9 @@ async def _get_response_for_model(
     else:
         # Build the improvement conversation.
         conversation = _build_improvement_conversation(
-            consensus_config, initial_conversation, aggregated_response
+            consensus_config, initial_conversation, aggregated_response, iteration
         )
-        logger.info("sending improvement prompt", model_id=model.model_id)
+        logger.info("sending improvement prompt", model_id=model.model_id, iteration=iteration)
 
     payload: ChatRequest = {
         "model": model.model_id,
@@ -137,6 +149,7 @@ async def send_round(
     consensus_config: ConsensusConfig,
     initial_conversation: list[Message],
     aggregated_response: str | None = None,
+    iteration: int = 0,
 ) -> dict:
     """
     Asynchronously sends a round of chat completion requests for all models.
@@ -146,11 +159,12 @@ async def send_round(
     :param initial_conversation: the input user prompt with system instructions.
     :param aggregated_response: The aggregated consensus response from the
         previous round (or None).
+    :param iteration: The current iteration number (0-indexed).
     :return: A dictionary mapping model IDs to their response texts.
     """
     tasks = [
         _get_response_for_model(
-            provider, consensus_config, model, initial_conversation, aggregated_response
+            provider, consensus_config, model, initial_conversation, aggregated_response, iteration
         )
         for model in consensus_config.models
     ]
