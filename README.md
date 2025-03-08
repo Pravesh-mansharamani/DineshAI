@@ -255,3 +255,83 @@ If you encounter issues, follow these steps:
   - In line with the previously mentioned LLM-as-a-Judge, a model could potentially be used for filtering _bad_ responses. LLM-Blender, for instance, introduced in [arXiv:2306.02561](https://arxiv.org/abs/2306.02561), uses a PairRanker that achieves a ranking of outputs through pairwise comparisons via a _cross-attention encoder_.
 - **AI Agent Swarm**:
   - The structure of the reference CL implementation can be changed to adapt _swarm_-type algorithms, where tasks are broken down and distributed among specialized agents for parallel processing. In this case a centralized LLM would act as an orchestrator for managing distribution of tasks -- see _e.g._ [swarms repo](https://github.com/kyegomez/swarms).
+
+# CapCheck System Overview
+
+## Project Overview
+CapCheck is a community notes system built using Consensus AI Voting with no human intervention or bias. The system uses a Flare AI Consensus Learning approach to generate reliable consensus answers from multiple large language models.
+
+## System Architecture
+
+### Core Components
+
+1. **FastAPI Application (`main.py`)**
+   - Entry point for the application
+   - Sets up API routes and middleware
+   - Initializes the consensus configuration
+
+2. **ChatRouter (`api/routes/chat.py`)**
+   - Handles chat API endpoints
+   - Processes incoming messages through the consensus pipeline
+   - Returns aggregated responses
+
+3. **Consensus Engine (`consensus/`)**
+   - `consensus.py`: Implements the consensus learning algorithm
+   - `aggregator.py`: Provides methods to aggregate responses from different models
+   - Runs multiple iterations to refine answers
+
+4. **Model Integration (`router/`)**
+   - Connects to OpenRouter API to access different LLM models
+   - Handles async communication with models
+
+5. **Settings and Configuration (`settings.py`)**
+   - Manages model configurations
+   - Stores consensus algorithm parameters
+   - Loads configuration from input.json
+
+### Key Functions
+
+1. **`run_consensus()`** - Main function that:
+   - Sends the initial prompt to all models
+   - Aggregates responses
+   - Runs improvement iterations
+   - Returns the final consensus answer
+
+2. **`send_round()`** - Sends requests to all models in parallel and collects responses
+
+3. **`async_centralized_llm_aggregator()`** - Aggregates responses from different models into a consensus
+
+4. **Chat API endpoint** - Accepts user messages and returns consensus responses
+
+## RAG Pipeline Implementation Guide
+
+The optimal place to implement a Retrieval-Augmented Generation (RAG) pipeline in the CapCheck system would be between the user input and the consensus process. This can be accomplished by:
+
+### Implementation Locations
+
+1. **Primary Option: API Layer (`api/routes/chat.py`)**
+   - In the `chat()` function in `ChatRouter`, before calling `run_consensus()`
+   - This would allow augmenting the user message with retrieved context before passing it to models
+
+2. **Secondary Option: Create a RAG Middleware**
+   - Create a new module under `flare_ai_consensus/` (e.g., `rag/`)
+   - Implement a middleware component that processes messages before they reach the consensus engine
+
+### Recommended Integration Approach
+
+1. Modify the `chat()` function in `ChatRouter` to:
+   - Extract key information from the user's message
+   - Query a vector database for relevant context
+   - Augment the system or user message with this context
+   - Pass the enhanced messages to the consensus pipeline
+
+2. This approach allows the existing consensus process to remain unchanged while benefiting from the additional context provided by RAG.
+
+### Technical Requirements for RAG
+
+1. **Vector Database** - To store and retrieve document embeddings
+2. **Document Processing Pipeline** - To convert documents into vectors
+3. **Query Processing** - To convert user queries into embeddings
+4. **Context Integration** - To merge retrieved information with user queries
+
+No code changes are required at this time - this guide provides a roadmap for where and how to implement RAG functionality while preserving the existing consensus learning architecture.
