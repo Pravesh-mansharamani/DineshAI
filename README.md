@@ -1,6 +1,101 @@
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![Flare](https://img.shields.io/badge/flare-network-e62058.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNCIgaGVpZ2h0PSIzNCI+PHBhdGggZD0iTTkuNC0uMWEzMjAuMzUgMzIwLjM1IDAgMCAwIDIuOTkuMDJoMi4yOGExMTA2LjAxIDExMDYuMDEgMCAwIDEgOS4yMy4wNGMzLjM3IDAgNi43My4wMiAxMC4xLjA0di44N2wuMDEuNDljLS4wNSAyLTEuNDMgMy45LTIuOCA1LjI1YTkuNDMgOS40MyAwIDAgMS02IDIuMDdIMjAuOTJsLTIuMjItLjAxYTQxNjEuNTcgNDE2MS41NyAwIDAgMS04LjkyIDBMMCA4LjY0YTIzNy4zIDIzNy4zIDAgMCAxLS4wMS0xLjUxQy4wMyA1LjI2IDEuMTkgMy41NiAyLjQgMi4yIDQuNDcuMzcgNi43LS4xMiA5LjQxLS4wOXoiIGZpbGw9IiNFNTIwNTgiLz48cGF0aCBkPSJNNy42NSAxMi42NUg5LjJhNzU5LjQ4IDc1OS40OCAwIDAgMSA2LjM3LjAxaDMuMzdsNi42MS4wMWE4LjU0IDguNTQgMCAwIDEtMi40MSA2LjI0Yy0yLjY5IDIuNDktNS42NCAyLjUzLTkuMSAyLjVhNzA3LjQyIDcwNy40MiAwIDAgMC00LjQtLjAzbC0zLjI2LS4wMmMtMi4xMyAwLTQuMjUtLjAyLTYuMzgtLjAzdi0uOTdsLS4wMS0uNTVjLjA1LTIuMSAxLjQyLTMuNzcgMi44Ni01LjE2YTcuNTYgNy41NiAwIDAgMSA0LjgtMnoiIGZpbGw9IiNFNjIwNTciLz48cGF0aCBkPSJNNi4zMSAyNS42OGE0Ljk1IDQuOTUgMCAwIDEgMi4yNSAyLjgzYy4yNiAxLjMuMDcgMi41MS0uNiAzLjY1YTQuODQgNC44NCAwIDAgMS0zLjIgMS45MiA0Ljk4IDQuOTggMCAwIDEtMi45NS0uNjhjLS45NC0uODgtMS43Ni0xLjY3LTEuODUtMy0uMDItMS41OS4wNS0yLjUzIDEuMDgtMy43NyAxLjU1LTEuMyAzLjM0LTEuODIgNS4yNy0uOTV6IiBmaWxsPSIjRTUyMDU3Ii8+PC9zdmc+&colorA=FFFFFF)](https://dev.flare.network/)
 
+# AI Consensus System
+
+A robust framework for generating more accurate, reliable answers by using multiple large language models and an aggregation approach.
+
+## Overview
+
+The AI Consensus System leverages the collective intelligence of multiple AI models to produce more accurate, reliable responses than any single model can achieve. By analyzing responses from different models (Gemini, Claude, and Perplexity), identifying points of agreement and disagreement, and synthesizing a consensus, the system delivers answers with greater factual accuracy and consistency.
+
+## Key Features
+
+- **Multi-Model Analysis**: Combines responses from three leading LLMs (Google's Gemini, Anthropic's Claude, and Perplexity)
+- **Rigorous Consensus Building**: Evaluates agreement across models, identifying verified facts vs. uncertain claims
+- **Direct, Concise Responses**: Removes meta-commentary and filler language for clear, to-the-point answers
+- **Iterative Refinement**: Applies multiple passes of improvement for optimal responses
+- **Comprehensive Testing**: Includes a testing framework to measure accuracy, reliability, and performance metrics
+
+## How It Works
+
+1. The system sends the same query to multiple AI models in parallel
+2. A specialized aggregator model (Claude) analyzes all responses to identify:
+   - Points of strong agreement across models
+   - Areas of partial agreement
+   - Contradictions or inconsistencies
+3. The aggregator synthesizes a consensus response that:
+   - Clearly marks information as [VERIFIED], [LIKELY], or [UNCERTAIN]
+   - Prioritizes facts with strong model agreement
+   - Presents information in a logical, structured format
+4. The consensus undergoes iterative refinement to enhance conciseness and clarity
+5. The final answer combines the strengths of all models while reducing individual weaknesses
+
+## Testing Framework
+
+The system includes a comprehensive testing suite that evaluates:
+
+### Accuracy Improvements
+- **Factual Correctness**: How well the consensus incorporates key facts from ground truth
+- **Semantic Similarity**: How closely the meaning matches reference answers
+- **Exact Match Performance**: Direct comparison against ground truth
+
+### Reliability Metrics
+- **Consistency**: How similar responses are across multiple runs of the same query
+- **Uncertainty Handling**: How well the system handles ambiguous or contested topics
+
+### Performance Benchmarks
+- **Response Time**: Comparison of consensus system vs. individual models
+- **Overhead Assessment**: Additional cost of the consensus approach
+
+## Usage
+
+### Running Tests
+
+```bash
+# Run tests with default settings
+python -m src.flare_ai_consensus.test_consensus
+
+# Run with custom settings
+python -m src.flare_ai_consensus.test_consensus --config=path/to/config.json --test-cases=path/to/test_cases.json --output-dir=results --num-runs=5
+```
+
+### Interpreting Results
+
+Test results are saved in two formats:
+- A detailed JSON report with all metrics and raw responses
+- A human-readable summary text file highlighting key findings
+
+Key metrics to review:
+- **Accuracy improvement percentage**: How much better the consensus performs vs. the best single model
+- **Reliability improvement**: Consistency gains across test runs
+- **Performance overhead**: Additional processing time compared to single models
+
+## Project Structure
+
+```
+src/flare_ai_consensus/
+├── __init__.py
+├── consensus_engine.py    # Core implementation of consensus system
+├── input.json             # Configuration for models and prompts
+├── test_cases.json        # Test cases with ground truth
+└── test_consensus.py      # Testing framework
+```
+
+## Benefits
+
+- **Enhanced Accuracy**: By combining multiple models, the system reduces individual model biases and limitations
+- **Improved Reliability**: Greater consistency in answers across multiple runs
+- **Appropriate Uncertainty**: Clear distinction between verified facts and uncertain claims
+- **Concise Responses**: Direct answers without unnecessary explanations or meta-commentary
+
+## Future Improvements
+
+- Integration with semantic similarity metrics for more accurate evaluations
+- Support for streaming responses
+- Custom weighting of different models based on domain expertise
+- Visual representation of model agreement levels
+
 # Flare AI Consensus
 
 Flare AI SDK for Consensus Learning.

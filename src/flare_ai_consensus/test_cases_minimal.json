@@ -1,0 +1,33 @@
+{
+  "description": "Simplified test cases for faster consensus system evaluation",
+  "cases": [
+    {
+      "id": "factual_knowledge_1",
+      "prompt": "What is the capital of France?",
+      "ground_truth": "The capital of France is Paris.",
+      "key_facts": ["Paris", "capital", "France"],
+      "context": "Paris is the capital and most populous city of France. It is located on the Seine River, in the north of the country, at the heart of the Île-de-France region."
+    },
+    {
+      "id": "reasoning_1",
+      "prompt": "If a train travels at 60 mph, how long will it take to travel 180 miles?",
+      "ground_truth": "It will take 3 hours to travel 180 miles at 60 mph.",
+      "key_facts": ["3 hours", "180 miles", "60 mph"],
+      "context": "To find time when given distance and speed, use the formula: time = distance ÷ speed. When using consistent units, this will give the time it takes to travel the given distance at the given speed."
+    },
+    {
+      "id": "technical_1",
+      "prompt": "Explain how HTTP cookies work.",
+      "ground_truth": "HTTP cookies are small pieces of data stored on the client's device by the web browser while browsing a website. They are designed to be a reliable mechanism for websites to remember stateful information or to record the user's browsing activity.",
+      "key_facts": ["stored on client device", "browser", "remember state", "user activity"],
+      "context": "HTTP cookies are small blocks of data created by a web server while a user is browsing a website and placed on the user's computer or other device by the user's web browser. Cookies are placed on the device used to access a website, and more than one cookie may be placed on a user's device during a session. Cookies serve useful and sometimes essential functions on the web."
+    },
+    {
+      "id": "controversial_1",
+      "prompt": "What are the arguments for and against gun control?",
+      "ground_truth": "Arguments for gun control include potential reduction in gun violence, suicide prevention, and public safety. Arguments against include Second Amendment rights, self-defense concerns, and skepticism about effectiveness. This is a complex political issue with deeply held views on both sides influenced by constitutional interpretation, public health data, and cultural factors.",
+      "key_facts": ["public safety", "Second Amendment", "violence reduction", "self-defense", "constitutional rights", "complex issue", "multiple perspectives"],
+      "context": "Gun control debates center around legal measures to regulate the sale, possession, and use of firearms. Proponents argue these measures can reduce gun violence, homicides, and mass shootings. Opponents cite the Second Amendment's right to bear arms and argue that responsible gun ownership provides self-defense and protection. The topic involves constitutional interpretation, public health considerations, and deeply rooted cultural values about freedom and safety."
+    }
+  ]
+} 

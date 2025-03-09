@@ -1,53 +1,43 @@
 {
     "models": [
         {
-            "id": "meta-llama/llama-3.3-70b-instruct:free",
+            "id": "google/gemini-2.0-pro:free",
             "max_tokens": 500,
-            "temperature": 0.5
+            "temperature": 0.2
         },
         {
-            "id": "google/gemini-2.0-pro-exp-02-05:free",
+            "id": "anthropic/claude-3-5-sonnet:free",
             "max_tokens": 500,
-            "temperature": 0.5
+            "temperature": 0.2
         },
         {
-            "id": "google/gemini-2.0-flash-thinking-exp:free",
+            "id": "perplexity/sonar-small-online:free",
             "max_tokens": 500,
-            "temperature": 0.5
-        },
-        {
-            "id": "mistralai/mistral-7b-instruct:free",
-            "max_tokens": 500,
-            "temperature": 0.5
-        },
-        {
-            "id": "qwen/qwen2.5-vl-72b-instruct:free",
-            "max_tokens": 500,
-            "temperature": 0.5
+            "temperature": 0.2
         }
     ],
     "aggregator": [
         {
             "model": {
-                "id": "meta-llama/llama-3.3-70b-instruct:free",
+                "id": "anthropic/claude-3-5-sonnet:free",
                 "max_tokens": 1000,
-                "temperature": 0.3
+                "temperature": 0.1
             },
             "aggregator_context": [
                 {
                     "role": "system",
-                    "content": "You are a rigorous consensus-building AI tasked with analyzing multiple AI responses to determine the most accurate and reliable information. Your job is to carefully evaluate each response, identify claims that have strong agreement among models, flag any inconsistencies or contradictions, and synthesize a comprehensive consensus answer that represents the collective knowledge across all models. You must clearly distinguish between verified facts (with strong model agreement) and claims that remain uncertain or contested."
+                    "content": "You are an expert at synthesizing information from multiple sources while maintaining consistency in style, terminology, and level of detail. Your primary goal is to create responses that are both factually accurate and internally consistent."
                 }
             ],
             "aggregator_prompt": [
                 {
                     "role": "user",
-                    "content": "You have been provided with responses from multiple large language models to the same query. Your task is to create a consensus answer following these guidelines:\n\n1. ANALYSIS: Carefully analyze each response, identifying key claims, facts, and reasoning patterns that appear across multiple models.\n\n2. AGREEMENT ASSESSMENT: Determine which statements have strong agreement across models, which have partial agreement, and which have contradictions or inconsistencies.\n\n3. EVIDENCE EVALUATION: Evaluate the quality of any reasoning, citations, or explanations provided to support claims in each response.\n\n4. CONSENSUS SYNTHESIS: Create a comprehensive synthesis that:\n   - Prioritizes information with strong agreement across models\n   - Includes important nuances or qualifications from different responses\n   - Presents a logical, well-structured answer to the original query\n   - Maintains appropriate technical depth and accuracy\n\n5. UNCERTAINTY MARKING: Clearly distinguish between:\n   - VERIFIED: Information with strong agreement across models (explicitly mark as 'VERIFIED')\n   - LIKELY: Information with moderate agreement (explicitly mark as 'LIKELY')\n   - UNCERTAIN: Information with significant disagreement (explicitly mark as 'UNCERTAIN')\n\n6. LIMITATIONS: At the end, add a brief 'Limitations' section identifying any areas where the models showed significant uncertainty or where additional domain expertise might be needed.\n\nYour response should be comprehensive, accurate, well-organized, and appropriately cautious about uncertain information. The goal is to provide the most reliable answer possible by leveraging the collective intelligence of multiple AI models."
+                    "content": "For the given query, create a consistent, factually accurate response that integrates information from the context and model interpretations. Maintain consistency in terminology, phrasing, and detail level throughout your response. Structure information logically and mark verified facts appropriately."
                 }
             ]
         }
     ],
     "aggregated_prompt_type": "system",
-    "improvement_prompt": "Review the initial consensus and provide an improved response that addresses any remaining inconsistencies, logical gaps, or areas needing clarification. Focus on enhancing accuracy, completeness, logical coherence, and appropriate qualification of uncertainty. Maintain the distinction between verified facts (with strong model agreement) and claims that remain uncertain.",
-    "iterations": 3
+    "improvement_prompt": "Not used in single-pass approach",
+    "iterations": 0
 }
