@@ -12,7 +12,7 @@ from typing import Any
 
 # Import RAG processor, ensuring we use FAISS instead of Pinecone
 try:
-    from src.utils.rag_utils import RAGProcessor
+    from utils.rag_utils import RAGProcessor
 except ImportError as e:
     # If there's an import error related to Pinecone, use a simplified version
     if "langchain_pinecone" in str(e):

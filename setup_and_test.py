@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """
 Simplified setup and test script for the Flare Network RAG-Consensus bot.
-This version doesn't require Pinecone and uses FAISS instead.
 """
 
 import os
@@ -10,6 +9,10 @@ import asyncio
 import logging
 import json
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(

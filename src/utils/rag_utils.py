@@ -10,7 +10,7 @@ from langchain.vectorstores import FAISS
 from dotenv import load_dotenv
 import numpy as np
 
-from src.utils.file_utils import (
+from utils.file_utils import (
     get_files_info, load_ignore_patterns, calculate_chunks
 )
 
