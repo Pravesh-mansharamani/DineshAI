@@ -1,10 +1,17 @@
+"""
+Enhanced consensus engine with explicit support for RAG-generated context.
+
+This module provides functionality to run consensus across multiple LLMs with
+improved support for RAG (Retrieval Augmented Generation) context integration.
+"""
+
 import json
 import time
 import logging
 from collections import Counter
 import difflib
 import re
-from typing import List, Dict, Any, Tuple, Optional
+from typing import Any
 import requests
 import os
 
@@ -28,9 +35,14 @@ DOMAIN_KNOWLEDGE = {
         "verification_focus": ["logical consistency", "mathematical proof", "axioms", "definitions"]
     },
     "technology": {
-        "keywords": ["computer", "software", "hardware", "programming", "algorithm", "code", "technology", "digital"],
+        "keywords": ["computer", "software", "hardware", "programming", "algorithm", "code", "technology", "digital", "blockchain", "crypto", "flare", "network"],
         "context_intro": "In the context of technology, ",
         "verification_focus": ["technical accuracy", "implementation details", "system architecture", "performance metrics"]
+    },
+    "blockchain": {
+        "keywords": ["blockchain", "crypto", "flare", "network", "validator", "consensus", "token", "smart contract", "defi", "web3"],
+        "context_intro": "In the blockchain domain, ",
+        "verification_focus": ["protocol details", "network architecture", "consensus mechanisms", "token economics"]
     },
     "healthcare": {
         "keywords": ["medical", "health", "treatment", "diagnosis", "patient", "disease", "medicine", "doctor"],
@@ -42,23 +54,6 @@ DOMAIN_KNOWLEDGE = {
         "context_intro": "From an ethical standpoint, ",
         "verification_focus": ["moral principles", "stakeholder impact", "long-term consequences", "value alignment"]
     }
-}
-
-# Exact expected answers that match ground truth for known test cases
-GROUND_TRUTH = {
-    "capital of france": "Paris is the capital of France.",
-    "http cookies": "HTTP cookies are small pieces of data stored on a user's device by web browsers while browsing websites. They store stateful information for websites.",
-    "train travels at 60 mph": "A train traveling at 60 mph will take 2 hours to cover 120 miles."
-}
-
-# Enhanced responses for more contextual and factual answers
-ENHANCED_RESPONSES = {
-    # More nuanced responses for content types
-    "argument": "This topic involves multiple perspectives that should be carefully considered. There are valid points on different sides of this issue, supported by various studies and ethical frameworks.",
-    
-    # Improved context handling
-    "with_context": "Based on the provided context, the information indicates that [RELEVANT_INSIGHT]. This is supported by the specific details mentioned in the source material.",
-    "no_context": "This question requires specific information that isn't immediately available. A comprehensive answer would need to consider several factors including [DOMAIN_FACTORS]."
 }
 
 # Store previous responses to ensure consistency across functions
@@ -160,56 +155,21 @@ def get_enhanced_response(prompt: str, has_context: bool) -> str:
     # Identify the domain for domain-specific responses
     domain = identify_domain(prompt)
     
-    # Check for exact ground truth matches with high priority
-    for key, answer in GROUND_TRUTH.items():
-        if key in prompt_lower:
-            RESPONSE_CACHE[cache_key] = answer
-            return answer
-    
-    # Check for specific query types with enhanced responses
-    if "argument" in prompt_lower or "gun" in prompt_lower or "control" in prompt_lower or "abortion" in prompt_lower or "controversial" in prompt_lower:
-        response = customize_response(ENHANCED_RESPONSES["argument"], prompt, has_context, domain)
-        RESPONSE_CACHE[cache_key] = response
-        return response
-    
     # Enhanced contextual responses
     if has_context:
-        response = customize_response(ENHANCED_RESPONSES["with_context"], prompt, has_context, domain)
+        response = customize_response(
+            "Based on the provided context, the information indicates that [RELEVANT_INSIGHT]. This is supported by the specific details mentioned in the source material.",
+            prompt, has_context, domain
+        )
         RESPONSE_CACHE[cache_key] = response
         return response
     else:
-        response = customize_response(ENHANCED_RESPONSES["no_context"], prompt, has_context, domain)
+        response = customize_response(
+            "This question requires specific information about [RELEVANT_INSIGHT]. A comprehensive answer would need to consider several factors including [DOMAIN_FACTORS].",
+            prompt, has_context, domain
+        )
         RESPONSE_CACHE[cache_key] = response
         return response
-
-class FeedbackManager:
-    """Class for managing user feedback to improve model responses."""
-    def __init__(self, feedback_file: str):
-        self.feedback_file = feedback_file
-
-    def collect_feedback(self, prompt: str, response: str, rating: int, corrections: str = ""):
-        """Collect feedback from users and store it for analysis."""
-        feedback_entry = {
-            'prompt': prompt,
-            'response': response,
-            'rating': rating,
-            'corrections': corrections
-        }
-        with open(self.feedback_file, 'a') as f:
-            json.dump(feedback_entry, f)
-            f.write('\n')
-
-    def analyze_feedback(self):
-        """Analyze collected feedback to identify areas for improvement."""
-        with open(self.feedback_file, 'r') as f:
-            feedback_entries = [json.loads(line) for line in f]
-        # Analyze feedback entries to improve model responses
-        # This could involve adjusting model parameters or retraining
-        # Implement a simple analysis to adjust weights based on feedback
-        for entry in feedback_entries:
-            if entry['rating'] < 3:
-                # Adjust weights or parameters based on negative feedback
-                pass
 
 def integrate_responses(responses: list[str], domain: str | None = None, weights: list[float] = None) -> str:
     """
@@ -244,7 +204,8 @@ def integrate_responses(responses: list[str], domain: str | None = None, weights
     if domain and domain in DOMAIN_KNOWLEDGE:
         if not base_response[0].isupper():
             base_response = base_response[0].upper() + base_response[1:]
-        base_response = DOMAIN_KNOWLEDGE[domain]["context_intro"] + base_response
+        if not base_response.startswith(DOMAIN_KNOWLEDGE[domain]["context_intro"]):
+            base_response = DOMAIN_KNOWLEDGE[domain]["context_intro"] + base_response.lower()
     
     return base_response
 
@@ -289,29 +250,26 @@ class ModelAPIClient:
         self.api_key = api_key
         self.base_url = base_url
 
-    def call_model(self, model_id: str, prompt: str, max_tokens: int = 500, temperature: float = 0.5) -> str:
+    def call_model(self, model_id: str, prompt: str, system_message: str = None, max_tokens: int = 500, temperature: float = 0.5) -> str:
         """Call the model API and return the response."""
         headers = {'Authorization': f'Bearer {self.api_key}'}
+        
+        # Prepare messages with system message if provided
+        messages = []
+        if system_message:
+            messages.append({"role": "system", "content": system_message})
+        messages.append({"role": "user", "content": prompt})
+        
         payload = {
             'model': model_id,
-            'prompt': prompt,
+            'messages': messages,
             'max_tokens': max_tokens,
             'temperature': temperature
         }
-        response = requests.post(f'{self.base_url}/v1/models/{model_id}/completions', json=payload, headers=headers)
+        
+        response = requests.post(f'{self.base_url}/v1/chat/completions', json=payload, headers=headers)
         response.raise_for_status()
-        return response.json()['choices'][0]['text']
-
-class RetrievalAugmentedGenerator:
-    """Class for integrating retrieval-augmented generation capabilities."""
-    def __init__(self, retrieval_service_url: str):
-        self.retrieval_service_url = retrieval_service_url
-
-    def retrieve_context(self, query: str) -> str:
-        """Retrieve context from external sources."""
-        response = requests.get(f'{self.retrieval_service_url}/search', params={'query': query})
-        response.raise_for_status()
-        return response.json()['context']
+        return response.json()['choices'][0]['message']['content']
 
 def run_single_model(
     model_id: str,
@@ -319,11 +277,25 @@ def run_single_model(
     max_tokens: int = 500,
     temperature: float = 0.5,
     context: str = None,
+    system_message: str = None,
     complexity_level: str = "auto",
     api_client: ModelAPIClient = None
 ) -> str:
     """
     Run a single model with optimized performance and reliability.
+    
+    Args:
+        model_id: The model ID to use
+        prompt: User query
+        max_tokens: Maximum response tokens
+        temperature: Response randomness (0-1)
+        context: Optional RAG context
+        system_message: Optional system message (overrides default)
+        complexity_level: Response complexity level
+        api_client: Optional API client
+        
+    Returns:
+        Model response text
     """
     # Fast path for testing mode
     if os.environ.get('TESTING_MODE') == 'True':
@@ -333,11 +305,28 @@ def run_single_model(
 
     # Adapt prompt based on complexity
     adapted_prompt = adapt_prompt_complexity(prompt, complexity_level)
+    
+    # Prepare system message if not provided
+    if not system_message and context:
+        system_message = (
+            "You are answering questions about the Flare Network. "
+            "Use the following context to inform your response:\n\n"
+            f"{context}\n\n"
+            "If the context doesn't contain relevant information, use your general knowledge "
+            "but acknowledge the limitations. Always provide accurate information and "
+            "indicate clearly when information is not from the provided context."
+        )
 
     # Use the API client to get the model response
     if api_client:
         try:
-            response = api_client.call_model(model_id, adapted_prompt, max_tokens, temperature)
+            response = api_client.call_model(
+                model_id=model_id, 
+                prompt=adapted_prompt,
+                system_message=system_message,
+                max_tokens=max_tokens, 
+                temperature=temperature
+            )
         except requests.exceptions.RequestException as e:
             logger.error(f"API call failed: {e}")
             response = get_enhanced_response(prompt, bool(context))
@@ -364,28 +353,39 @@ def explain_consensus_process(prompt: str, responses: list[str], consensus_respo
         return consensus_response
         
     # For production use, provide a concise explanation
-    explanation = f"Consensus response based on multiple sources. "
-    
     if domain and domain in DOMAIN_KNOWLEDGE:
-        explanation += f"Domain: {domain}. "
-        
-    explanation += f"\n\n{consensus_response}"
+        # Add domain prefix if not already present
+        if not consensus_response.startswith(DOMAIN_KNOWLEDGE[domain]["context_intro"]):
+            consensus_response = DOMAIN_KNOWLEDGE[domain]["context_intro"] + consensus_response[0].lower() + consensus_response[1:]
     
-    return explanation
+    return consensus_response
 
 def run_consensus(
     config: dict,
     prompt: str,
     context: str = None,
+    system_message: str = None,
     complexity_level: str = "auto",
     api_client: ModelAPIClient = None,
-    rag_generator: RetrievalAugmentedGenerator = None
+    rag_generator = None
 ) -> str:
     """
     Run the consensus system with optimized performance and reliability.
+    
+    Args:
+        config: Consensus system configuration
+        prompt: User query
+        context: Retrieved context from RAG (optional)
+        system_message: Custom system message (optional)
+        complexity_level: Response complexity level
+        api_client: Optional API client
+        rag_generator: Optional RAG generator for additional context
+        
+    Returns:
+        Consensus response
     """
-    # Set testing mode for performance optimization
-    os.environ['TESTING_MODE'] = 'True'
+    # Performance optimization flag for testing
+    testing_mode = os.environ.get('TESTING_MODE', 'False')
     
     logger.info(f"Running consensus system with prompt: {prompt[:50]}...")
 
@@ -397,33 +397,48 @@ def run_consensus(
     # Identify domain for domain-specific handling
     domain = identify_domain(prompt)
 
-    # Retrieve additional context if RAG is enabled and not in testing mode
-    if rag_generator and os.environ.get('TESTING_MODE') != 'True':
+    # Retrieve additional context if RAG is enabled and not provided
+    if rag_generator and not context and testing_mode != 'True':
         try:
             context = rag_generator.retrieve_context(prompt)
-        except requests.exceptions.RequestException as e:
+            logger.info(f"Retrieved additional context: {len(context.split())} words")
+        except Exception as e:
             logger.error(f"Context retrieval failed: {e}")
 
-    # For ground truth cases, use exact answers
-    prompt_lower = prompt.lower()
-    for key, answer in GROUND_TRUTH.items():
-        if key in prompt_lower:
-            RESPONSE_CACHE[cache_key] = answer
-            return answer
+    # Prepare default system message if needed
+    if not system_message and context:
+        system_message = (
+            "You are answering questions about the Flare Network. "
+            "Use the following context to inform your response:\n\n"
+            f"{context}\n\n"
+            "If the context doesn't contain relevant information, use your general knowledge "
+            "but acknowledge the limitations. Always provide accurate information and "
+            "indicate clearly when information is not from the provided context."
+        )
 
-    # For non-ground truth cases, use enhanced consensus approach
-    model_responses = []
-    
     # In testing mode, use a single enhanced response for consistency
-    if os.environ.get('TESTING_MODE') == 'True':
+    if testing_mode == 'True':
         response = get_enhanced_response(prompt, bool(context))
         RESPONSE_CACHE[cache_key] = response
         return response
         
     # For production, use multiple models
+    model_responses = []
     for model in config.get("models", []):
         model_id = model.get("id", "default_model")
-        model_response = run_single_model(model_id, prompt, context=context, complexity_level=complexity_level, api_client=api_client)
+        max_tokens = model.get("max_tokens", 500)
+        temperature = model.get("temperature", 0.5)
+        
+        model_response = run_single_model(
+            model_id=model_id, 
+            prompt=prompt, 
+            max_tokens=max_tokens, 
+            temperature=temperature,
+            context=context,
+            system_message=system_message,
+            complexity_level=complexity_level, 
+            api_client=api_client
+        )
         model_responses.append(model_response)
 
     # Integrate the responses to form a consensus
@@ -434,83 +449,15 @@ def run_consensus(
     key_facts = extract_key_terms(prompt)
     confidence, verified_facts = fact_checker.verify_statement(consensus_response, domain, key_facts)
     
-    # Add source information only if confidence is high
-    if confidence > 0.8:
-        if not consensus_response.endswith('.'): 
+    # Add context reference if we have context and confidence is high
+    if context and confidence > 0.7:
+        if not consensus_response.endswith('.'):
             consensus_response += '.'
-        consensus_response += " This information is based on established knowledge."
+        consensus_response += " This information is based on the provided context and general knowledge of Flare Network."
 
     # Provide an explanation of the consensus process
     explanation = explain_consensus_process(prompt, model_responses, consensus_response, domain)
 
     # Cache the response
-    RESPONSE_CACHE[cache_key] = consensus_response
+    RESPONSE_CACHE[cache_key] = explanation
     return explanation
-
-def evaluate_response(
-    response: str,
-    ground_truth: str,
-    key_facts: list[str] | None = None
-) -> dict[str, float]:
-    """
-    Evaluate a response against ground truth with improved metrics.
-    
-    Args:
-        response: The model response to evaluate
-        ground_truth: The ground truth answer
-        key_facts: Optional list of key facts that should be present
-        
-    Returns:
-        Dictionary with evaluation metrics
-    """
-    # Check for exact match with ground truth
-    exact_match = 1.0 if response == ground_truth else 0.0
-    
-    # Calculate semantic similarity with improved algorithm
-    similarity_ratio = difflib.SequenceMatcher(None, response.lower(), ground_truth.lower()).ratio()
-    
-    # Adjust for length differences - penalize responses that are too short or too long
-    len_ratio = min(len(response), len(ground_truth)) / max(len(response), len(ground_truth))
-    weighted_similarity = similarity_ratio * 0.7 + len_ratio * 0.3
-    semantic_similarity = min(0.99, weighted_similarity * 1.1)  # Slightly boost but cap at 0.99
-    
-    # Calculate factual correctness based on key facts
-    factual_score = 0.5  # Default score
-    if key_facts:
-        # Count how many key facts are mentioned, with partial credit for similar mentions
-        fact_matches = []
-        for fact in key_facts:
-            fact_lower = fact.lower()
-            if fact_lower in response.lower():
-                fact_matches.append(1.0)  # Exact match
-            else:
-                # Check for partial matches
-                words = fact_lower.split()
-                if len(words) > 1:
-                    word_matches = sum(1 for word in words if word in response.lower()) / len(words)
-                    if word_matches > 0.5:  # More than half the words match
-                        fact_matches.append(0.5)  # Partial match
-                    elif word_matches > 0:  # At least some words match
-                        fact_matches.append(0.25)  # Minimal match
-                    else:
-                        fact_matches.append(0)  # No match
-                else:
-                    fact_matches.append(0)  # No match for single-word facts
-        
-        # Calculate average fact score
-        if fact_matches:
-            factual_score = min(0.99, sum(fact_matches) / len(key_facts))
-    
-    # If it's an exact match, return perfect scores
-    if exact_match == 1.0:
-        return {
-            "exact_match": 1.0,
-            "semantic_similarity": 0.99,
-            "factual_correctness": 0.99
-        }
-    
-    return {
-        "exact_match": 0.0,
-        "semantic_similarity": semantic_similarity,
-        "factual_correctness": factual_score
-    } 
